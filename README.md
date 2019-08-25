@@ -1,7 +1,6 @@
 # Domoticz-Growatt-Webserver-Plugin
 
-A Domoticz Python Plugin that can read data from the Growatt webserver interface.
-To retrieve Data from the Growatt webservice into your Domoticz.
+A Domoticz Python Plugin that can read data from the Growatt webserver interface into your Domoticz.
 
 ![devices](https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin/blob/master/Growatt-Image.png)
 
