@@ -145,11 +145,14 @@ class BasePlugin:
         if (Status == 0):
             Domoticz.Debug("Growatt connected successfully.")            
             password=Parameters["Mode3"]
-            password=hashlib.md5(str.encode(password))
+            password_md5 = hashlib.md5(password.encode("utf-8")).hexdigest()
+            for i in range(0, len(password_md5), 2):
+                if password_md5[i] == "0":
+                    password_md5 = password_md5[0:i] + "c" + password_md5[i + 1 :]
             sendData = { 'Verb' : 'POST',
                          'URL'  : '/newTwoLoginAPI.do',
                          'Headers' : self.apiRequestHeaders(),
-                         'Data': "password="+password.hexdigest()+"&userName="+Parameters["Mode2"]
+                         'Data': "password="+password_md5+"&userName="+Parameters["Mode2"]
                          }
             Domoticz.Debug("Step 1. Login SendData: "+str(sendData))
             Connection.Send(sendData)
