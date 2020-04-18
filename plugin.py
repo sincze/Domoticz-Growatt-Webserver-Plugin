@@ -144,7 +144,6 @@ class BasePlugin:
             'Verb': 'GET',
             'URL': "/newTwoPlantAPI.do?op=getAllDeviceList&plantId="+str(self.plantId)+"&content=",
 #            #'URL': "/newTwoPlantAPI.do?op=getAllDeviceList&plantId="+str(self.plantId)+"&content",
-#            #'URL': "/newTwoPlantAPI.do?op=getAllDeviceList&plantId=155390&content=",
             'Headers' : { 'Connection': 'keep-alive',
                           'Host': 'server-api.growatt.com',
                           'User-Agent': 'Domoticz/1.0',
