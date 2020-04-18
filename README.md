@@ -6,7 +6,7 @@ A Domoticz Python Plugin that can read data from the Growatt webserver interface
 
 ## ONLY TESTED FOR Raspberry Pi
 
-With Python version 3.5 & Domoticz V4.11214 (beta) / Domoticz V2020.1 (stable)
+With Python version 3.7.3. & Domoticz V2020.1 (stable)
 
 
 ## Installation
@@ -23,7 +23,7 @@ sudo /etc/init.d/domoticz.sh restart
 ```
 ## Known issues
 
-None at the moment
+Cookie Expires, needs to be fixed! Inspiration Usage only!
 
 ## Updating
 
