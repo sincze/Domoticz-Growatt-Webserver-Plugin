@@ -67,6 +67,7 @@ try:
     import hashlib
     import json
     import re               # Needed to extract data from Some JSON result
+    import urllib.parse     # Needed to encode request body messages
 
     local = False
 except ImportError:
@@ -152,7 +153,7 @@ class BasePlugin:
             sendData = { 'Verb' : 'POST',
                          'URL'  : '/newTwoLoginAPI.do',
                          'Headers' : self.apiRequestHeaders(),
-                         'Data': "password="+password_md5+"&userName="+Parameters["Mode2"]
+                         'Data': "password="+password_md5+"&userName="+urllib.parse.quote_plus(Parameters["Mode2"])
                          }
             Domoticz.Debug("Step 1. Login SendData: "+str(sendData))
             Connection.Send(sendData)
