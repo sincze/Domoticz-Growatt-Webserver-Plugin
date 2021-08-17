@@ -28,7 +28,7 @@
 #   This plugin will read the status from the running inverter via the webservice.         #
 #                                                                                          #
 #   V 1.0.0. 25-08-2019 Initial Release                                                    #
-#   V 2.0.0. 16-08-2021 Added pvoutput upload between 06:00 and 23:00                      #
+#   V 2.0.0. 17-08-2021 Added pvoutput upload between 06:00 and 23:00                      #
 ############################################################################################
 
 
@@ -81,6 +81,8 @@ try:
 
     local = False
     logfile = False
+    starthour = "06"
+    stophour  = "23"
 
 except ImportError:
     local = True
@@ -102,8 +104,6 @@ class BasePlugin:
     serialnumber = ""
     pvosid = ""
     pvokey = ""
-    starthour = "06"
-    stophour  = "23"
 
     def __init__(self):
         return
@@ -216,9 +216,9 @@ class BasePlugin:
                     etoday = apiResponse['todayValue']                              # running total today Convert kWh to Wh
                     sValue=str(current)+";"+str( float(total)*1000 )
                     Domoticz.Log("Currently producing: "+str(current)+" Watt........ Totall produced: "+str(total)+" kWh in Wh that is: "+str(float(total)*1000) )
-#                    PrintToFile(uploaddate+uploadtime+" Current power in Watt: "+str(current)+" Total produced in Wh: "+str(float(total)*1000)+" Today in Wh : " )
                     UpdateDevice(Unit=1, nValue=0, sValue=sValue, TimedOut=0)
                     UpdateDevice(Unit=2, nValue=0, sValue=current, TimedOut=0)
+
                     acpower = str(int(float(current)))
                     yieldtodaywh = str(int(float(etoday)*1000))
                     timenow = datetime.now()
