@@ -1,20 +1,20 @@
-########################################################################################
+############################################################################################
 # 	Growatt Inverter Python Plugin for Domoticz                                   	   #
-#                                                                                      #
+#                                                                                          #
 # 	MIT License                                                                        #
-#                                                                                      #
+#                                                                                          #
 #	Copyright (c) 2018 tixi                                                            #
-#                                                                                      #
+#                                                                                          #
 #	Permission is hereby granted, free of charge, to any person obtaining a copy       #
 #	of this software and associated documentation files (the "Software"), to deal      #
 #	in the Software without restriction, including without limitation the rights       #
 #	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell          #
 #	copies of the Software, and to permit persons to whom the Software is              #
 #	furnished to do so, subject to the following conditions:                           #
-#                                                                                      #
+#                                                                                          #
 #	The above copyright notice and this permission notice shall be included in all     #
 #	copies or substantial portions of the Software.                                    #
-#                                                                                      #
+#                                                                                          #
 #	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR         #
 #	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,           #
 #	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE        #
@@ -22,19 +22,20 @@
 #	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,      #
 #	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE      #
 #	SOFTWARE.                                                                          #
-#                                                                                      #
-#   Author: sincze                                                                     #
-#                                                                                      #
-#   This plugin will read the status from the running inverter via the webservice.     #
-#                                                                                      #
-#   V 1.0.0. Initial Release (25-08-2019)                                              #
-########################################################################################
+#                                                                                          #
+#   Author: sincze                                                                         #
+#                                                                                          #
+#   This plugin will read the status from the running inverter via the webservice.         #
+#                                                                                          #
+#   V 1.0.0. 25-08-2019 Initial Release                                                    #
+#   V 2.0.0. 17-08-2021 Added pvoutput upload between 06:00 and 23:00                      #
+############################################################################################
 
 
 """
-<plugin key="GrowattWeb" name="Growatt Web Inverter" author="sincze" version="1.0.0" externallink="https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin">
+<plugin key="GrowattWebPVO" name="Growatt Web Domoticz-Pvoutput" author="sincze" version="2.0.0" externallink="https://github.com/HarryVerjans/domoticz-growatt-webserver-pvoutput-plugin">
     <description>
-        <h2>Retrieve available Growatt Inverter information from the webservice</h2><br/>        
+        <h2>Retrieve available Growatt Inverter information from the webservice</h2><br/>
     </description>
     <params>
         <param field="Address" label="Server Address" width="200px" required="true" default="server-api.growatt.com"/>
@@ -46,6 +47,8 @@
                 <option label="HTTP" value="80"  default="true" />
             </options>
         </param>
+        <param field="Mode4" label="Pvoutput sysids" width="200px" required="true" default="optional"/>
+        <param field="Mode5" label="Pvoutput apikey" width="300px" required="true" default="optional"/>
         <param field="Mode6" label="Debug" width="150px">
             <options>
                 <option label="None" value="0"  default="true" />
@@ -63,6 +66,13 @@
 """
 
 try:
+    from datetime import date								#added 2021-08-16 by HV
+    from datetime import datetime							#added 2021-08-16 by HV
+    import requests
+    import os
+    from urllib.parse import urljoin,urlencode
+    import logging
+    import csv
     import Domoticz
     import hashlib
     import json
@@ -70,6 +80,10 @@ try:
     import urllib.parse     # Needed to encode request body messages
 
     local = False
+    logfile = False
+    starthour = "06"
+    stophour  = "23"
+
 except ImportError:
     local = True
     import fakeDomoticz as Domoticz
@@ -77,6 +91,8 @@ except ImportError:
     from fakeDomoticz import Parameters
 
 class BasePlugin:
+    logger = logging.getLogger(__name__)
+    PVOUTPUT_URL = 'https://pvoutput.org/'
     httpConn = None
     runAgain = 6
     disconnectCount = 0
@@ -86,24 +102,26 @@ class BasePlugin:
     serverId=""
     plantId = ""
     serialnumber = ""
-   
+    pvosid = ""
+    pvokey = ""
+
     def __init__(self):
         return
 
     def apiRequestHeaders(self):        # Needed headers for Login Function
         return {
-            'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',            
+            'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
             'Connection': 'keep-alive',
             'Host': 'server-api.growatt.com',
             'User-Agent': 'Domoticz/1.0',
             'Accept-Encoding': 'gzip'
         }
-    
+
     def apiRequestHeaders_cookie(self): # Needed headers for Data retrieval
         return {
             'Verb': 'POST',
             'URL': '/newTwoPlantAPI.do?op=getUserCenterEnertyDataByPlantid',
-            'Headers' : { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',                         
+            'Headers' : { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
                           'Connection': 'keep-alive',
                           'Host': 'server-api.growatt.com',
                           'User-Agent': 'Domoticz/1.0',
@@ -118,7 +136,7 @@ class BasePlugin:
 #        return {
 #            'Verb': 'GET',
 #            'URL': "/newTwoPlantAPI.do?op=getAllDeviceList&plantId="+str(self.plantId)+"&content=",
-#            'Headers' : { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',                         
+#            'Headers' : { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
 #                          'Connection': 'keep-alive',
 #                          'Host': 'server-api.growatt.com',
 #                          'User-Agent': 'Domoticz/1.0',
@@ -126,11 +144,17 @@ class BasePlugin:
 #                          'Cookie': ['JSESSIONID='+self.sessionId, 'SERVERID='+self.serverId]
 #                        },
 #        }
-    
+
     def onStart(self):
         if Parameters["Mode6"] != "0":
             Domoticz.Debugging(int(Parameters["Mode6"]))
             DumpConfigToLog()
+
+        if Parameters["Mode4"] != "":
+           pvosid = Parameters["Mode4"]
+
+        if Parameters["Mode5"] != "":
+           pvokey = Parameters["Mode5"]
 
         # Check if devices need to be created
         createDevices()
@@ -144,7 +168,7 @@ class BasePlugin:
 
     def onConnect(self, Connection, Status, Description):
         if (Status == 0):
-            Domoticz.Debug("Growatt connected successfully.")            
+            Domoticz.Debug("Growatt connected successfully.")
             password=Parameters["Mode3"]
             password_md5 = hashlib.md5(password.encode("utf-8")).hexdigest()
             for i in range(0, len(password_md5), 2):
@@ -164,7 +188,6 @@ class BasePlugin:
 
     def onMessage(self, Connection, Data):
         DumpHTTPResponseToLog(Data)
-        
         strData = Data["Data"].decode("utf-8", "ignore")
         Status = int(Data["Status"])
         LogMessage(strData)
@@ -172,12 +195,12 @@ class BasePlugin:
         if (Status == 200):
             apiResponse = json.loads(strData)
             Domoticz.Debug("Retrieved following json: "+json.dumps(apiResponse))
-            
+
             try:
-                if ('back' in apiResponse):              
+                if ('back' in apiResponse):
                 #if not ['back']['success']:
                 #    Domoticz.Log("Login Failed")
-                #elif ('back' in apiResponse):                  
+                #elif ('back' in apiResponse):
                     Domoticz.Log("Login Succesfull")
                     self.plantId = apiResponse["back"]["data"][0]["plantId"]
                     Domoticz.Log("Plant ID: "+str(self.plantId)+" was found")
@@ -185,20 +208,31 @@ class BasePlugin:
                     if not self.cookieAvailable:
                         Domoticz.Debug("No cookie extracted!")
                     else:
-                        Domoticz.Debug("Request Data with retrieved cookie!")                    
-                        Connection.Send(self.apiRequestHeaders_cookie() )                    
+                        Domoticz.Debug("Request Data with retrieved cookie!")
+                        Connection.Send(self.apiRequestHeaders_cookie())
                 elif ('powerValue' in apiResponse):
                     current = apiResponse['powerValue']
                     total = apiResponse['totalValue']                               # Convert kWh to Wh
+                    etoday = apiResponse['todayValue']                              # running total today Convert kWh to Wh
                     sValue=str(current)+";"+str( float(total)*1000 )
-                    Domoticz.Log("Currently producing: "+str(current)+" Watt. Totall produced: "+str(total)+" kWh in Wh that is: "+str(float(total)*1000) )
+                    Domoticz.Log("Currently producing: "+str(current)+" Watt........ Totall produced: "+str(total)+" kWh in Wh that is: "+str(float(total)*1000) )
                     UpdateDevice(Unit=1, nValue=0, sValue=sValue, TimedOut=0)
-                    UpdateDevice(Unit=2, nValue=0, sValue=current, TimedOut=0)              
+                    UpdateDevice(Unit=2, nValue=0, sValue=current, TimedOut=0)
+
+                    acpower = str(int(float(current)))
+                    yieldtodaywh = str(int(float(etoday)*1000))
+                    timenow = datetime.now()
+                    uploadhour = str(timenow.strftime("%H"))
+                    if (uploadhour >= starthour and uploadhour < stophour):
+                       if Parameters["Mode4"] != "":
+                          pvoutput = uploadToPvOutput(acpower, yieldtodaywh)
+                          PrintToFile(pvoutput)
+                          Domoticz.Log("PVOUTPUT: "+pvoutput)
                 else:
                     Domoticz.Debug("Not received anything usefull!")
             except KeyError:
                 Domoticz.Debug("No defined keys found!")
-            
+
         elif (Status == 400):
             Domoticz.Error("Google returned a Bad Request Error.")
         elif (Status == 500):
@@ -229,31 +263,31 @@ class BasePlugin:
 
 
     def ProcessCookie(self, httpDict):
-        if isinstance(httpDict, dict):            
+        if isinstance(httpDict, dict):
             Domoticz.Debug("Analyzing Data ("+str(len(httpDict))+"):")
             for x in httpDict:
                 if isinstance(httpDict[x], dict):
                     if (x == "Headers"):
-                        Domoticz.Debug("---> Headers found")    
+                        Domoticz.Debug("---> Headers found")
                         for y in httpDict[x]:
                             # Domoticz.Debug("------->'" + y + "':'" + str(httpDict[x][y]) + "'")
-                            if (y == "Set-Cookie"):        
+                            if (y == "Set-Cookie"):
                                 Domoticz.Debug("---> Process Cookie Started")
                                 try:
                                     self.sessionId = re.search(r"(?<=JSESSIONID=).*?(?=;)", str(httpDict[x][y])).group(0)
-                                    Domoticz.Debug("---> SessionID found: "+ str(self.sessionId)) 
+                                    Domoticz.Debug("---> SessionID found: "+ str(self.sessionId))
                                     self.cookieAvailable = True
                                 except AttributeError:
                                     self.cookieAvailable = False
-                                    Domoticz.Debug("---> SessionID NOT found") 
+                                    Domoticz.Debug("---> SessionID NOT found")
 
                                 if self.cookieAvailable:
                                     try:
                                         self.serverId = re.search(r"(?<=SERVERID=).*?(?=;)", str(httpDict[x][y])).group(0)
-                                        Domoticz.Debug("---> ServerID found: "+ str(self.serverId)) 
+                                        Domoticz.Debug("---> ServerID found: "+ str(self.serverId))
                                     except AttributeError:
                                         self.cookieAvailable = False
-                                        Domoticz.Debug("---> ServerID NOT found") 
+                                        Domoticz.Debug("---> ServerID NOT found")
 
 
 global _plugin
@@ -330,13 +364,23 @@ def DumpHTTPResponseToLog(httpResp, level=0):
             Domoticz.Debug(indentStr + "['" + x + "']")
     else:
         Domoticz.Debug(indentStr + ">'" + x + "':'" + str(httpResp[x]) + "'")
-       
+
+def PrintToFile(cdata):
+    # Log progress to file while debugging
+    if logfile != False:
+       p1_init_file="/home/pi/domoticz/plugins/domoticz-growatt-webserver-pvoutput-plugin/pvo.log"
+       file=open(p1_init_file,"at")
+       file.write(cdata)
+       file.write('#\n')
+       file.close
+
 def UpdateDevice(Unit, nValue, sValue, TimedOut=0, AlwaysUpdate=False):
-    # Make sure that the Domoticz device still exists (they can be deleted) before updating it 
+    # Make sure that the Domoticz device still exists (they can be deleted) before updating it
     if (Unit in Devices):
         if (Devices[Unit].nValue != nValue) or (Devices[Unit].sValue != sValue) or (Devices[Unit].TimedOut != TimedOut):
             Devices[Unit].Update(nValue=nValue, sValue=str(sValue), TimedOut=TimedOut)
             Domoticz.Log("Update "+str(nValue)+":'"+str(sValue)+"' ("+Devices[Unit].Name+")")
+#            PrintToFile("Update "+str(nValue)+":'"+str(sValue)+"' ("+Devices[Unit].Name+")")
     return
 
 
@@ -367,3 +411,53 @@ def createDevices():
         Domoticz.Log("Inverter Device (W) created.")
         Domoticz.Device(Name="Inverter Status", Unit=3, TypeName="Switch", Used=1, Image=image).Create()
         Domoticz.Log("Inverter Device (Switch) created.")
+
+
+#https://pvoutput.org/help.html#api-addstatus
+#https://pvoutput.org/service/r2/addstatus.jsp
+
+#create url can be done simpler but i like this method
+def build_api_url1():
+    BASE_URL = os.environ.get("BASE_URL", "https://pvoutput.org/")
+    path = f"/service/r2/addstatus.jsp"
+    query = ''
+    return urljoin(BASE_URL, path + query)
+
+#getrealtime info api call
+def uploadToPvOutput(acPower, yieldTodayWh):
+    pvosid = (Parameters["Mode4"])
+    pvokey = (Parameters["Mode5"])
+    timenow = datetime.now()
+    uploaddate = str(timenow.strftime("%Y%m%d"))
+    uploadtime = str(timenow.strftime("%H:%M"))
+    PrintToFile("uploadToPvoutput: "+acPower+" "+yieldTodayWh+" "+str(uploaddate)+" "+str(uploadtime))
+    Domoticz.Log("PVOUTPUT "+pvosid+" "+str(uploaddate)+" "+str(uploadtime)+" "+acPower+" "+yieldTodayWh)
+
+#    PrintToFile(pvosid)
+#    PrintToFile(pvokey)
+
+    apiUrl = build_api_url1()
+    pvoutputdata = {
+      'd': str(uploaddate),
+      't': str(uploadtime),
+      'v1': str(yieldTodayWh),
+      'v2': str(acPower)
+    }
+
+    headerspv = {
+        'X-Pvoutput-SystemId': str(pvosid),
+        'X-Pvoutput-Apikey': str(pvokey)
+    }
+    try:
+        response = requests.post(apiUrl, headers=headerspv, data=pvoutputdata)
+        response.raise_for_status()
+#        logger.debug(f'Api url: {str(apiUrl)}')
+#        logger.debug(f'pvoutputdata: {str(pvoutputdata)}')
+    except requests.exceptions.HTTPError as err:
+        logger.exception('HTTP Error')
+    except requests.exceptions.RequestException as err:
+        logger.exception('Exception occurred')
+#    logger.info(f'HTTP Response status code: {str(response.status_code)}')
+#    logger.debug(str(response.text))
+    return response.text
+
