@@ -28,11 +28,12 @@
 #   This plugin will read the status from the running inverter via the webservice.     #
 #                                                                                      #
 #   V 1.0.0. Initial Release (25-08-2019)                                              #
+#   V 1.0.1. Initial Release (20-11-2022), Fix for Domoticz 2022.2                     #
 ########################################################################################
 
 
 """
-<plugin key="GrowattWeb" name="Growatt Web Inverter" author="sincze" version="1.0.0" externallink="https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin">
+<plugin key="GrowattWeb" name="Growatt Web Inverter" author="sincze" version="1.0.1" externallink="https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin">
     <description>
         <h2>Retrieve available Growatt Inverter information from the webservice</h2><br/>        
     </description>
@@ -95,8 +96,8 @@ class BasePlugin:
             'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',            
             'Connection': 'keep-alive',
             'Host': 'server-api.growatt.com',
-            'User-Agent': 'Domoticz/1.0',
-            'Accept-Encoding': 'gzip'
+            'User-Agent': 'Domoticz/1.0'
+#            'Accept-Encoding': 'gzip'
         }
     
     def apiRequestHeaders_cookie(self): # Needed headers for Data retrieval
@@ -107,7 +108,7 @@ class BasePlugin:
                           'Connection': 'keep-alive',
                           'Host': 'server-api.growatt.com',
                           'User-Agent': 'Domoticz/1.0',
-                          'Accept-Encoding': 'gzip',
+#                          'Accept-Encoding': 'gzip',
                           'Cookie': ['JSESSIONID='+self.sessionId, 'SERVERID='+self.serverId]
                         },
             'Data': "plantId="+str(self.plantId)+"&language=1"
