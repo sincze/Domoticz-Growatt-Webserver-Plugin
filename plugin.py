@@ -28,12 +28,13 @@
 #   This plugin will read the status from the running inverter via the webservice.     #
 #                                                                                      #
 #   V 1.0.0. Initial Release (25-08-2019)                                              #
-#   V 1.0.1. Initial Release (20-11-2022), Fix for Domoticz 2022.2                     #
+#   V 1.0.1. Release (20-11-2022), Fix for Domoticz 2022.2                             #
+#   V 1.0.2. Release (21-11-2022), Fix for Errorhandling tnx to JoostDkr               #
 ########################################################################################
 
 
 """
-<plugin key="GrowattWeb" name="Growatt Web Inverter" author="sincze" version="1.0.1" externallink="https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin">
+<plugin key="GrowattWeb" name="Growatt Web Inverter" author="sincze" version="1.0.2" externallink="https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin">
     <description>
         <h2>Retrieve available Growatt Inverter information from the webservice</h2><br/>        
     </description>
@@ -165,12 +166,11 @@ class BasePlugin:
 
     def onMessage(self, Connection, Data):
         DumpHTTPResponseToLog(Data)
-        
-        strData = Data["Data"].decode("utf-8", "ignore")
-        Status = int(Data["Status"])
-        LogMessage(strData)
+        Status = int(Data["Status"])        
 
         if (Status == 200):
+            strData = Data["Data"].decode("utf-8", "ignore")
+            LogMessage(strData)
             apiResponse = json.loads(strData)
             Domoticz.Debug("Retrieved following json: "+json.dumps(apiResponse))
             
@@ -201,11 +201,11 @@ class BasePlugin:
                 Domoticz.Debug("No defined keys found!")
             
         elif (Status == 400):
-            Domoticz.Error("Google returned a Bad Request Error.")
+            Domoticz.Error("Growatt returned a Bad Request Error.")
         elif (Status == 500):
-            Domoticz.Error("Google returned a Server Error.")
+            Domoticz.Error("Growatt returned a Server Error.")
         else:
-            Domoticz.Error("Google returned a status: "+str(Status))
+            Domoticz.Error("Growatt returned a status: "+str(Status))
 
     def onCommand(self, Unit, Command, Level, Hue):
         Domoticz.Debug("onCommand called for Unit " + str(Unit) + ": Parameter '" + str(Command) + "', Level: " + str(Level))
