@@ -175,7 +175,8 @@ class BasePlugin:
             Domoticz.Debug("Retrieved following json: "+json.dumps(apiResponse))
             
             try:
-                if ('back' in apiResponse):              
+                if ('back' in apiResponse and strData.find('data') > -1 and strData.find('plantId') > -1): # 17-12-2022 Tip from JoostDkr
+                #if ('back' in apiResponse):              
                 #if not ['back']['success']:
                 #    Domoticz.Log("Login Failed")
                 #elif ('back' in apiResponse):                  
