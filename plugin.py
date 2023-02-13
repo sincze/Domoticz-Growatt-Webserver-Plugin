@@ -193,11 +193,11 @@ class BasePlugin:
                     current = apiResponse['powerValue']
                     total = apiResponse['totalValue']                               # Convert kWh to Wh
                     sValue=str(current)+";"+str( float(total)*1000 )
-                    Domoticz.Log("Currently producing: "+str(current)+" Watt. Totall produced: "+str(total)+" kWh in Wh that is: "+str(float(total)*1000) )
+                    Domoticz.Log("Currently producing: "+str(current)+" Watt. Total produced: "+str(total)+" kWh in Wh that is: "+str(float(total)*1000) )
                     UpdateDevice(Unit=1, nValue=0, sValue=sValue, TimedOut=0)
                     UpdateDevice(Unit=2, nValue=0, sValue=current, TimedOut=0)              
                 else:
-                    Domoticz.Debug("Not received anything usefull!")
+                    Domoticz.Debug("Not received anything useful!")
             except KeyError:
                 Domoticz.Debug("No defined keys found!")
             
