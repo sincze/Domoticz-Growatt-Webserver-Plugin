@@ -81,7 +81,7 @@ except ImportError:
 
 class BasePlugin:
     httpConn = None
-    runAgain = 227          # To check every 5 minutes. 
+    runAgain = 27          # To check every 5 minutes. 
     disconnectCount = 0
     sProtocol = "HTTP"
     cookieAvailable = False
