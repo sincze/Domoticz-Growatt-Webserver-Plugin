@@ -30,22 +30,23 @@
 #   V 1.0.0. Initial Release (25-08-2019)                                              #
 #   V 1.0.1. Release (20-11-2022), Fix for Domoticz 2022.2                             #
 #   V 1.0.2. Release (21-11-2022), Fix for Errorhandling tnx to JoostDkr               #
+#   V 1.0.3. Release (20-08-2023), Fix for new API "oepi-loepi"                        #
 ########################################################################################
 
 
 """
-<plugin key="GrowattWeb" name="Growatt Web Inverter" author="sincze" version="1.0.2" externallink="https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin">
+<plugin key="GrowattWeb" name="Growatt Web Inverter" author="sincze" version="1.0.3" externallink="https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin">
     <description>
         <h2>Retrieve available Growatt Inverter information from the webservice</h2><br/>        
     </description>
     <params>
-        <param field="Address" label="Server Address" width="200px" required="true" default="server-api.growatt.com"/>
+        <param field="Address" label="Server Address" width="200px" required="true" default="server.growatt.com"/>
         <param field="Mode2" label="Portal Username" width="200px" required="true" default="admin"/>
         <param field="Mode3" label="Portal Password" width="200px" required="true" password="true"/>
         <param field="Mode1" label="Protocol" width="75px">
             <options>
-                <option label="HTTPS" value="443"/>
-                <option label="HTTP" value="80"  default="true" />
+                <option label="HTTPS" value="443" default="true" />
+                <option label="HTTP" value="80" />
             </options>
         </param>
         <param field="Mode6" label="Debug" width="150px">
@@ -96,9 +97,8 @@ class BasePlugin:
         return {
             'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',            
             'Connection': 'keep-alive',
-            'Host': 'server-api.growatt.com',
+            'Host': 'server.growatt.com',
             'User-Agent': 'Domoticz/1.0'
-#            'Accept-Encoding': 'gzip'
         }
     
     def apiRequestHeaders_cookie(self): # Needed headers for Data retrieval
@@ -107,7 +107,7 @@ class BasePlugin:
             'URL': '/newTwoPlantAPI.do?op=getUserCenterEnertyDataByPlantid',
             'Headers' : { 'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',                         
                           'Connection': 'keep-alive',
-                          'Host': 'server-api.growatt.com',
+                          'Host': 'server.growatt.com',
                           'User-Agent': 'Domoticz/1.0',
 #                          'Accept-Encoding': 'gzip',
                           'Cookie': ['JSESSIONID='+self.sessionId, 'SERVERID='+self.serverId]
