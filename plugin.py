@@ -81,7 +81,7 @@ except ImportError:
 
 class BasePlugin:
     httpConn = None
-    runAgain = 227 // To check every 5 minutes. 
+    runAgain = 227          # To check every 5 minutes. 
     disconnectCount = 0
     sProtocol = "HTTP"
     cookieAvailable = False
@@ -109,7 +109,6 @@ class BasePlugin:
                           'Connection': 'keep-alive',
                           'Host': 'server.growatt.com',
                           'User-Agent': 'Domoticz/1.0',
-#                          'Accept-Encoding': 'gzip',
                           'Cookie': ['JSESSIONID='+self.sessionId, 'SERVERID='+self.serverId]
                         },
             'Data': "plantId="+str(self.plantId)+"&language=1"
@@ -176,10 +175,6 @@ class BasePlugin:
             
             try:
                 if ('back' in apiResponse and strData.find('data') > -1 and strData.find('plantId') > -1): # 17-12-2022 Tip from JoostDkr
-                #if ('back' in apiResponse):              
-                #if not ['back']['success']:
-                #    Domoticz.Log("Login Failed")
-                #elif ('back' in apiResponse):                  
                     Domoticz.Log("Login Succesfull")
                     self.plantId = apiResponse["back"]["data"][0]["plantId"]
                     Domoticz.Log("Plant ID: "+str(self.plantId)+" was found")
