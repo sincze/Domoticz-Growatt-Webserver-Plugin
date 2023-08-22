@@ -36,7 +36,7 @@
 
 
 """
-<plugin key="GrowattWeb" name="Growatt Web Inverter" author="sincze" version="1.0.3" externallink="https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin">
+<plugin key="GrowattWeb" name="Growatt Web Inverter" author="sincze" version="1.0.4" externallink="https://github.com/sincze/Domoticz-Growatt-Webserver-Plugin">
     <description>
         <h2>Retrieve available Growatt Inverter information from the webservice</h2><br/>        
     </description>
