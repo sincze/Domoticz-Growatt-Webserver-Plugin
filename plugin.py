@@ -31,6 +31,7 @@
 #   V 1.0.1. Release (20-11-2022), Fix for Domoticz 2022.2                             #
 #   V 1.0.2. Release (21-11-2022), Fix for Errorhandling tnx to JoostDkr               #
 #   V 1.0.3. Release (20-08-2023), Fix for new API "oepi-loepi"                        #
+#   V 1.0.4. Release (22-08-2023), Run Again updated every 5 minutes tnx fgerrits      #
 ########################################################################################
 
 
@@ -81,7 +82,7 @@ except ImportError:
 
 class BasePlugin:
     httpConn = None
-    runAgain = 27          # To check every 5 minutes. 
+    runAgain = 24          # To check every 5 minutes. 
     disconnectCount = 0
     sProtocol = "HTTP"
     cookieAvailable = False
@@ -219,7 +220,7 @@ class BasePlugin:
                 if (self.httpConn == None):
                     self.httpConn = Domoticz.Connection(Name=self.sProtocol+" Test", Transport="TCP/IP", Protocol=self.sProtocol, Address=Parameters["Address"], Port=Parameters["Mode1"])
                 self.httpConn.Connect()
-                self.runAgain = 6
+                self.runAgain = 24
             else:
                 Domoticz.Debug("onHeartbeat called, run again in "+str(self.runAgain)+" heartbeats.")
         #Domoticz.Trace(False)
